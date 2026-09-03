@@ -16,8 +16,10 @@ func TestCmdParse(t *testing.T) {
 	tests := []struct {
 		name     string
 		args     []string
+		env      map[string]string
 		profile  string
 		role     string
+		alias    map[string]string
 		interval time.Duration
 		timeout  time.Duration
 		times    int
@@ -43,13 +45,37 @@ func TestCmdParse(t *testing.T) {
 		},
 		{
 			name:     "every flag",
-			args:     []string{"-p", "example", "-r", "AdministratorAccess", "-i", "5s", "-t", "30m", "-n", "3", "-q"},
+			args:     []string{"-p", "example", "-r", "admin", "-a", "ro=ReadOnlyAccess,admin=AdministratorAccess", "-i", "5s", "-t", "30m", "-n", "3", "-q"},
 			profile:  "example",
-			role:     "AdministratorAccess",
+			role:     "admin",
+			alias:    map[string]string{"ro": "ReadOnlyAccess", "admin": "AdministratorAccess"},
 			interval: 5 * time.Second,
 			timeout:  30 * time.Minute,
 			times:    3,
 			quiet:    true,
+		},
+		{
+			// Aliases are usually exported rather than passed, since they are
+			// the same every time.
+			name:     "aliases from the environment",
+			args:     []string{},
+			env:      map[string]string{"ROLEWAIT_ALIAS": "admin=AdministratorAccess"},
+			alias:    map[string]string{"admin": "AdministratorAccess"},
+			interval: time.Second,
+			timeout:  10 * time.Minute,
+			times:    2,
+		},
+		{
+			// Anyone using sr alongside rolewait has already defined these
+			// once, and defining them twice under two names is how the two
+			// tools end up disagreeing about what a short name means.
+			name:     "aliases fall back to sr's",
+			args:     []string{},
+			env:      map[string]string{"SR_ALIAS": "admin=AdministratorAccess"},
+			alias:    map[string]string{"admin": "AdministratorAccess"},
+			interval: time.Second,
+			timeout:  10 * time.Minute,
+			times:    2,
 		},
 		{
 			name:   "unknown flag",
@@ -63,6 +89,12 @@ func TestCmdParse(t *testing.T) {
 			assert := assert.New(t)
 
 			t.Setenv("AWS_PROFILE", "")
+			unsetenv(t, "ROLEWAIT_ALIAS")
+			unsetenv(t, "SR_ALIAS")
+
+			for name, value := range tt.env {
+				t.Setenv(name, value)
+			}
 
 			var cli struct {
 				Version kong.VersionFlag
@@ -83,6 +115,7 @@ func TestCmdParse(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(tt.profile, cli.Profile)
 			assert.Equal(tt.role, cli.Role)
+			assert.Equal(tt.alias, cli.Alias)
 			assert.Equal(tt.interval, cli.Interval)
 			assert.Equal(tt.timeout, cli.Timeout)
 			assert.Equal(tt.times, cli.Times)

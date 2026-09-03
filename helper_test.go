@@ -166,11 +166,27 @@ func isolateAWS(t *testing.T, config string) string {
 	t.Setenv("AWS_SHARED_CREDENTIALS_FILE", filepath.Join(dir, "credentials"))
 
 	// A profile the machine running the tests happens to export would
-	// otherwise be waited for instead of the one under test.
+	// otherwise be waited for instead of the one under test, and an alias of
+	// its own would expand to a permission set no test asked for.
 	t.Setenv("AWS_PROFILE", "")
 	t.Setenv("AWS_DEFAULT_PROFILE", "")
+	unsetenv(t, "ROLEWAIT_ALIAS")
+	unsetenv(t, "SR_ALIAS")
 
 	return dir
+}
+
+// unsetenv removes a variable for the duration of the test.
+//
+// t.Setenv cannot: kong takes a variable that is set but empty as the answer,
+// so an empty ROLEWAIT_ALIAS is not the same as no ROLEWAIT_ALIAS -- it is an
+// empty set of aliases, and it stops SR_ALIAS from being reached. Setting it
+// first is what registers the cleanup that puts it back.
+func unsetenv(t *testing.T, name string) {
+	t.Helper()
+
+	t.Setenv(name, "")
+	require.NoError(t, os.Unsetenv(name))
 }
 
 // writeToken puts body where the AWS CLI would have cached a token for key,

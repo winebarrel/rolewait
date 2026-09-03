@@ -35,12 +35,13 @@ type Context struct {
 
 // Cmd is the command line.
 type Cmd struct {
-	Profile  string        `short:"p" env:"AWS_PROFILE" help:"Profile naming the account and the permission set to wait for."`
-	Role     string        `short:"r" help:"Permission set to wait for, if not the one the profile names."`
-	Interval time.Duration `short:"i" default:"1s" help:"How long to wait between checks."`
-	Timeout  time.Duration `short:"t" default:"10m" help:"Give up after this long."`
-	Times    int           `short:"n" default:"2" help:"Consecutive successful checks before the wait is over."`
-	Quiet    bool          `short:"q" help:"Say nothing."`
+	Profile  string            `short:"p" env:"AWS_PROFILE" help:"Profile naming the account and the permission set to wait for."`
+	Role     string            `short:"r" help:"Permission set to wait for, if not the one the profile names."`
+	Alias    map[string]string `short:"a" env:"ROLEWAIT_ALIAS,SR_ALIAS" mapsep:"," help:"Short names for permission sets, as 'short=PermissionSetName'."`
+	Interval time.Duration     `short:"i" default:"1s" help:"How long to wait between checks."`
+	Timeout  time.Duration     `short:"t" default:"10m" help:"Give up after this long."`
+	Times    int               `short:"n" default:"2" help:"Consecutive successful checks before the wait is over."`
+	Quiet    bool              `short:"q" help:"Say nothing."`
 }
 
 // Run waits for the permission set and returns as soon as it is there.
@@ -52,7 +53,7 @@ func (cmd *Cmd) Run(cmdCtx *Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), cmd.Timeout)
 	defer cancel()
 
-	tgt, err := resolveTarget(ctx, cmd.Profile, cmd.Role)
+	tgt, err := resolveTarget(ctx, cmd.Profile, resolveRole(cmd.Role, cmd.Alias))
 
 	if err != nil {
 		return err

@@ -39,16 +39,20 @@ go install github.com/winebarrel/rolewait/cmd/rolewait@latest
 Usage: rolewait [flags]
 
 Flags:
-  -h, --help              Show context-sensitive help.
+  -h, --help                   Show context-sensitive help.
       --version
-  -p, --profile=STRING    Profile naming the account and the permission set to
-                          wait for ($AWS_PROFILE).
-  -r, --role=STRING       Permission set to wait for, if not the one the profile
-                          names.
-  -i, --interval=1s       How long to wait between checks.
-  -t, --timeout=10m       Give up after this long.
-  -n, --times=2           Consecutive successful checks before the wait is over.
-  -q, --quiet             Say nothing.
+  -p, --profile=STRING         Profile naming the account and the permission set
+                               to wait for ($AWS_PROFILE).
+  -r, --role=STRING            Permission set to wait for, if not the one the
+                               profile names.
+  -a, --alias=KEY=VALUE,...    Short names for permission sets, as
+                               'short=PermissionSetName' ($ROLEWAIT_ALIAS,
+                               $SR_ALIAS).
+  -i, --interval=1s            How long to wait between checks.
+  -t, --timeout=10m            Give up after this long.
+  -n, --times=2                Consecutive successful checks before the wait is
+                               over.
+  -q, --quiet                  Say nothing.
 ```
 
 Approve the elevation, then wait for it to land and get on with the work:
@@ -75,6 +79,45 @@ Without `-p`, the profile comes from `AWS_PROFILE` as usual:
 
 ```
 $ AWS_PROFILE=example rolewait -r AdministratorAccess
+```
+
+### Aliases
+
+Permission set names are long and repetitive to type. `ROLEWAIT_ALIAS` gives
+them short names:
+
+```sh
+export ROLEWAIT_ALIAS='ro=ReadOnlyAccess,admin=AdministratorAccess,po=PowerUserAccess'
+```
+
+```
+$ rolewait -p example -r admin && terraform apply
+```
+
+`SR_ALIAS` is read as a fallback, so anyone already using
+[sr](https://github.com/winebarrel/sr) alongside `rolewait` — waiting for a
+permission set and then running something against it are two halves of the same
+job — does not have to define the same short names twice under two variables
+and keep them agreeing:
+
+```sh
+export SR_ALIAS='ro=ReadOnlyAccess,admin=AdministratorAccess'
+```
+
+```
+$ rolewait -p example -r admin && sr -p example -r admin terraform apply
+```
+
+`ROLEWAIT_ALIAS` wins wherever it is set, including when it is set to nothing.
+
+The expansion is purely local — a name is either an alias you defined or the
+permission set name itself. `rolewait` never asks Identity Center what the
+short names could have meant, so there is no partial matching to be surprised
+by, and a name that is neither is waited for as written:
+
+```
+$ rolewait -p example -r adnim
+waiting for adnim in 123456789012, checking every 1s, giving up after 10m0s
 ```
 
 ## What it does
