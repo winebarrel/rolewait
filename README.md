@@ -23,7 +23,7 @@ Download an archive for your platform from the
 `rolewait` binary somewhere on your `PATH`:
 
 ```
-tar xzf rolewait_Darwin_arm64.tar.gz
+tar xzf rolewait_...tar.gz
 install rolewait /usr/local/bin/
 ```
 
