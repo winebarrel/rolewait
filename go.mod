@@ -9,7 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.20.9
 	github.com/aws/aws-sdk-go-v2/service/sso v1.38.4
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.43.4
-	github.com/aws/smithy-go v1.28.5
+	github.com/aws/smithy-go v1.28.6
 	github.com/stretchr/testify v1.12.1
 )
 
